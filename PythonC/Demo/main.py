@@ -147,3 +147,146 @@ def render_mpl_table(data, col_width=5.0, row_height=0.625, font_size=1,
     plt.margins(0, 0)
 
     return ax
+import time
+import pandas as pd
+import xlrd
+import re
+import matplotlib.pyplot as plt
+import six
+import numpy as np
+# 载入ppt和pyecharts相关的包
+from pyecharts.render import make_snapshot
+from snapshot_phantomjs import snapshot
+from pyecharts import options as opts
+from collections import defaultdict
+from pyecharts.charts import Bar, Geo, Map, Line,Funnel,Page
+import os
+from example.commons import Faker
+​
+def create_zjs_map():
+    folder_path = os.getcwd()
+    file_name = "白皮书数据地图.xlsx"
+    file_path = os.path.join(folder_path, file_name)
+    dat = get_excel_content(file_path, sheet_name="省份地图")
+​
+    df = dat[['城市', '渗透率']]
+    df.columns = ['city', 'penarate']
+    print(df)
+​
+    # df['city'] = df['city'].apply(lambda x: reg.sub('', x))
+    citys = df['city'].values.tolist()
+    values = df['penarate'].values.tolist()
+    print(citys)
+    print('{:.0f}%'.format(max(values)*100),'{:.0f}%'.format(min(values)*100))
+​
+    city_name='浙江'
+    penetration_map = (
+        Map(init_opts=opts.InitOpts(width='1200px', height='1000px', bg_color='white'))
+            .add("{}透率分布".format(city_name), [list(z) for z in zip(citys, values)], city_name)
+            .set_series_opts(
+                label_opts=opts.LabelOpts(
+                    is_show=True,
+                    font_size=15
+            )
+        )
+            .set_global_opts(
+                visualmap_opts=opts.VisualMapOpts(
+                    is_show=True,
+                    max_=max(values),
+                    min_=min(values),
+                    is_calculable=False,
+                    orient='horizontal',
+                    split_number=3,
+                    range_color=['#C2D5F8', '#88B0FB', '#4D8AFD'],
+                    range_text=['{:.0f}%'.format(max(values)*100),'{:.0f}%'.format(min(values)*100)],
+                    pos_left='10%',
+                    pos_bottom='15%'
+                ),
+                legend_opts=opts.LegendOpts(is_show=False)
+        )
+    )
+    # penetration_map.render()
+    make_snapshot(snapshot, penetration_map.render(), "zj_map.png")
+    print('保存 zj_map.png')
+    return penetration_map
+​
+def create_county_map(city_name):
+​
+    folder_path = os.getcwd()
+    file_name = "白皮书数据地图.xlsx"
+    file_path = os.path.join(folder_path, file_name)
+    dat = get_excel_content(file_path, sheet_name="城市地图")
+​
+    df = dat[['city', 'county', 'penarate']][dat.city == city_name]
+​
+    citys = df['county'].values.tolist()
+    values = df['penarate'].values.tolist()
+    max_insurance = max(values)
+​
+    print(citys)
+​
+    province_penetration_map = (
+        Map(init_opts=opts.InitOpts(width='1200px', height='1000px', bg_color='white'))
+            .add("{}透率分布".format(city_name), [list(z) for z in zip(citys, values)], reg.sub('',city_name))
+            .set_series_opts(
+                label_opts=opts.LabelOpts(
+                is_show=True,
+                font_size=15
+            )
+        )
+            .set_global_opts(
+            visualmap_opts=opts.VisualMapOpts(
+                is_show=True,
+                max_=max(values),
+                min_=min(values),
+                is_calculable=False,
+                orient='horizontal',
+                split_number=3,
+                range_color=['#C2D5F8', '#88B0FB', '#4D8AFD'],
+                range_text=['{:.0f}%'.format(max(values) * 100), '{:.0f}%'.format(min(values) * 100)],
+                pos_left='10%',
+                pos_bottom='5%'
+            ),
+            legend_opts=opts.LegendOpts(is_show=False)
+        )
+    )
+    # insurance_map.render()
+    make_snapshot(snapshot, province_penetration_map.render(), "city_map_{}.png".format(city_name))
+    print('保存 city_map_{}.png'.format(city_name))
+    return province_penetration_map
+​
+def create_funnel_label():
+​
+    folder_path=os.getcwd()
+    file_name = "白皮书数据地图.xlsx"
+    file_path = os.path.join(folder_path, file_name)
+    dat = get_excel_content(file_path, sheet_name="漏斗图")
+​
+    df = dat[['category', 'cnt']]
+    print(df)
+​
+    category = df['category'].values.tolist()
+    values = df['cnt'].values.tolist()
+​
+    funnel_map = (
+        Funnel(init_opts=opts.InitOpts(width='1200px', height='1000px', bg_color='white'))
+            .add("漏斗图", [list(z) for z in zip(category, values)])
+            .set_series_opts(
+                label_opts=opts.LabelOpts(
+                    position='inside',
+                    font_size=16,
+                )
+            )
+            .set_global_opts(
+                legend_opts=opts.LegendOpts(is_show=False)
+            )
+    )
+    # insurance_map.render()
+    make_snapshot(snapshot, funnel_map.render(), "funnel.png")
+    print('保存 funnel.png')
+    return funnel_map
+​
+city_list=['温州市','杭州市','绍兴市','嘉兴市','湖州市','宁波市','金华市','台州市','衢州市','丽水市','舟山市']
+​
+for city_name in city_list:
+    create_county_map(city_name)
